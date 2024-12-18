@@ -23,14 +23,14 @@ jobs:
       packages: write
 
     outputs:
-      # START_TIME: ${{ steps.build_start_time.outputs.start_time }}
+      START_TIME: ${{ steps.build_start_time.outputs.start_time }}
       IMAGE_TAG: ${{ steps.build_image.outputs.image_tag }}
       COMMIT_SHA: ${{ steps.build_image.outputs.commit_sha }}
 
     steps:
-      # - name: Calculate build start time
-      #   id: build_start_time
-      #   run: echo "start_time=$(date +%s)" >> $GITHUB_OUTPUT
+      - name: Calculate build start time
+        id: build_start_time
+        run: echo "start_time=$(date +%s)" >> $GITHUB_OUTPUT
 
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -82,114 +82,114 @@ jobs:
 
           echo "✅ Docker image pushed successfully: $IMAGE_NAME:${{ env.IMAGE_TAG }}."
 
-  # modify-k8s:
-  #   name: Modify Kubernetes Deployment
-  #   needs: build-and-push
-  #   runs-on: ubuntu-latest
+  modify-k8s:
+    name: Modify Kubernetes Deployment
+    needs: build-and-push
+    runs-on: ubuntu-latest
 
-  #   outputs:
-  #     DURATION: ${{ steps.build_duration.outputs.duration }}
+    outputs:
+      DURATION: ${{ steps.build_duration.outputs.duration }}
 
-  #   steps:
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v3
-  #       with:
-  #         repository: 'ngdangkietswe/swe-infrastructure'
-  #         token: ${{ secrets.PAT }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          repository: 'ngdangkietswe/swe-infrastructure'
+          token: ${{ secrets.PAT }}
 
-  #     - name: Modify Image Tag
-  #       id: modify_image_tag
-  #       run: |
-  #         set -e  # Exit on any error
-  #         echo "🔧 Modifying Kubernetes deployment files..."
+      - name: Modify Image Tag
+        id: modify_image_tag
+        run: |
+          set -e  # Exit on any error
+          echo "🔧 Modifying Kubernetes deployment files..."
           
-  #         git config --global user.name "ngdangkietse"
-  #         git config --global user.email "kietnguyen17052001@gmail.com"          
+          git config --global user.name "ngdangkietse"
+          git config --global user.email "kietnguyen17052001@gmail.com"          
 
-  #         # Extract the image tag
-  #         IMAGE_TAG=${{ needs.build-and-push.outputs.IMAGE_TAG }}
+          # Extract the image tag
+          IMAGE_TAG=${{ needs.build-and-push.outputs.IMAGE_TAG }}
           
-  #         # Modify the deployment files
-  #         sed -i "s|image: $IMAGE_NAME:.*|image: $IMAGE_NAME:$IMAGE_TAG|" k8s/swe-auth-service/deployment.yml
+          # Modify the deployment files
+          sed -i "s|image: $IMAGE_NAME:.*|image: $IMAGE_NAME:$IMAGE_TAG|" k8s/swe-app/deployment.yml
           
-  #         git add .
-  #         git commit -m "chore(swe-auth-service): update image tag to $IMAGE_TAG"
-  #         git push origin main
+          git add .
+          git commit -m "chore(swe-app): update image tag to $IMAGE_TAG"
+          git push origin main
           
-  #         echo "✅ Kubernetes deployment files updated successfully."
+          echo "✅ Kubernetes deployment files updated successfully."
 
-  #     - name: Calculate build duration
-  #       id: build_duration
-  #       run: |
-  #         START_TIME=${{ needs.build-and-push.outputs.START_TIME }}
-  #         END_TIME=$(date +%s)
-  #         DURATION=$((END_TIME - START_TIME))
-  #         echo "duration=$DURATION" >> $GITHUB_OUTPUT
-  #         echo "✅ Build took $DURATION seconds."
+      - name: Calculate build duration
+        id: build_duration
+        run: |
+          START_TIME=${{ needs.build-and-push.outputs.START_TIME }}
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          echo "duration=$DURATION" >> $GITHUB_OUTPUT
+          echo "✅ Build took $DURATION seconds."
 
-  # push-notification-to-slack:
-  #   name: Slack Notification
-  #   needs: [build-and-push, modify-k8s]
-  #   runs-on: ubuntu-latest
+  push-notification-to-slack:
+    name: Slack Notification
+    needs: [build-and-push, modify-k8s]
+    runs-on: ubuntu-latest
 
-  #   env:
-  #     SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-  #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    env:
+      SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  #   steps:
-  #     - name: Push Notification to Slack
-  #       uses: slackapi/slack-github-action@v1.26.0
-  #       with:
-  #         payload: |
-  #           {
-  #             "blocks": [
-  #               {
-  #                 "type": "section",
-  #                 "text": {
-  #                   "type": "mrkdwn",
-  #                   "text": "*:white_check_mark: Succeeded GitHub Actions*"
-  #                 }
-  #               },
-  #               {
-  #                 "type": "section",
-  #                 "fields": [
-  #                   {
-  #                     "type": "mrkdwn",
-  #                     "text": "*Repo*\n<https://github.com/${{ github.repository }}|${{ github.repository }}>"
-  #                   },
-  #                   {
-  #                     "type": "mrkdwn",
-  #                     "text": "*Commit*\n<${{ github.event.head_commit.url }}|${{ needs.build-and-push.outputs.COMMIT_SHA }}>"
-  #                   },
-  #                   {
-  #                     "type": "mrkdwn",
-  #                     "text": "*Author*\n${{ github.event.head_commit.author.name }}"
-  #                   },
-  #                   {
-  #                     "type": "mrkdwn",
-  #                     "text": "*Job*\n`${{ github.job }}`"
-  #                   },
-  #                   {
-  #                     "type": "mrkdwn",
-  #                     "text": "*Event Name*\n`${{ github.event_name }}`"
-  #                   },
-  #                   {
-  #                     "type": "mrkdwn",
-  #                     "text": "*Workflow*\n`${{ github.workflow }}`"
-  #                   },
-  #                   {
-  #                     "type": "mrkdwn",
-  #                     "text": "*Build Logs*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
-  #                   },
-  #                   {
-  #                     "type": "mrkdwn",
-  #                     "text": "*Took*\n`${{ needs.modify-k8s.outputs.DURATION }} sec`"
-  #                   },
-  #                   {
-  #                     "type": "mrkdwn",
-  #                     "text": "*Message*\n${{ github.event.head_commit.message }}"
-  #                   }
-  #                 ]
-  #               }
-  #             ]
-  #           }
+    steps:
+      - name: Push Notification to Slack
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*:white_check_mark: Succeeded GitHub Actions*"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repo*\n<https://github.com/${{ github.repository }}|${{ github.repository }}>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Commit*\n<${{ github.event.head_commit.url }}|${{ needs.build-and-push.outputs.COMMIT_SHA }}>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Author*\n${{ github.event.head_commit.author.name }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Job*\n`${{ github.job }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Event Name*\n`${{ github.event_name }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Workflow*\n`${{ github.workflow }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Build Logs*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Took*\n`${{ needs.modify-k8s.outputs.DURATION }} sec`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Message*\n${{ github.event.head_commit.message }}"
+                    }
+                  ]
+                }
+              ]
+            }
