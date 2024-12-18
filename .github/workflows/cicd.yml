@@ -35,12 +35,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Download Build Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: react-build
-          path: build/
-
       - name: Extract Branch Name
         id: extract_branch
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
